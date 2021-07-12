@@ -1,0 +1,275 @@
+---
+title: "Report on the National Basketball Association (NBA) 2014/2015 Season"
+author: "LU FAN (C2019192)"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  bookdown::pdf_document2:
+    toc: yes
+    number_sections: yes
+    keep_tex: yes
+    citation_package: natbib
+    fig_caption: yes
+    highlight: haddock
+    df_print: kable
+    extra_dependencies:
+      caption: labelfont={bf}
+fontfamily: times
+geometry: margin=1in
+fontsize: 11pt
+abstract: The findings indicate that the shooting player of a home team has home advantage
+  over the away team. Similarly, the distance of taking the shot from the basket positively
+  influence the final margin of the game. When the shooting player take the shot inside
+  the arc, he is more likely to shoot successfully as opposed when shooting outside
+  the arc. However, the distance of the closest defender do not significantly influence
+  the final margin. The results identified different playing profile of shooting players.
+  The team managers may apply this information to different players to optimize practice
+  planning and, consequently, the game performances of individuals and teams.
+---
+
+<!-- set knitr options here -->
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(reshape2)
+library(dplyr)
+library(knitr)
+install.packages("car", repos = "https://CRAN.R-project.org/package=car")
+library(car)
+install.packages("ggpubr", repos = "https://CRAN.R-project.org/package=ggpubr")
+library(ggplot2)
+library(ggpubr)
+```
+
+
+
+<!-- main body starts here -->
+# Introduction {#sec:intro}
+The data analyzed consisted of each team's performance when playing at home as well as away. The analysis utilized 128,069 observations to generate output that answered the study hypotheses. The main objective of this report was to establish if there is any significant difference in the performance of the teams when playing at home or away match. Specifically, the objective are:
+
+1.	To determine the effect of location on the final margin of a team.
+
+2.	To determine if the distance of the closest defender affect whether the score is made or not.
+
+3.	To examine the mean shots percentage under each period of various teams. 
+
+4.	To determine the relationship between the shot distance and the final margin.
+
+5.	To test the association between the position when making the shot (PTS_TYPE) and the shot results.
+
+Based on the objectives, five corresponding hypothesis were developed and tested using inferential statistics. The tests was performed using R studio version 1.3.1056. The description of the data using descriptive statistics preceded the inferential tests. The results were presented in tables and graphs and conclusion made based on the hypothesis tested.
+
+# Background {#sec:background}
+The National Basketball Association (NBA) is composed of 30 teams from United States. It was founded as a men's professional basketball league in 1946. Each team in a particular season play 82 games. The normal season for the NBA usually run from October to April. This report examines the data relating to 2014/2015 season where all the 30 teams participated. The season started on October 28, 2014 and ended on March 04, 2015. 
+
+The performance and the final ratings for NBA games substantially depends on shooting and defending players involved. The kind of players in the match have significant importance in the generation of revenue for their teams as well as for other teams (Dobson, Goddard & Dobson, 2001). Therefore, the productivity of an individual player participating in a match is measured using the player's statistics in the NBA. These statistics are linked to the team wins.
+
+The game-related statistics help to evaluate the efficiency of players and teams throughout the playing season. Use of these statistics is the most common method of monitoring sports performance. The performance variables must take into consideration the ability of the player and the playing environment in order to understand how players engage with others (Sampaio, Drinkwater & Leite, 2010). The game-related statistics can provide insight on both perception and action of the players. It is also a measure of how the players function as part of a team and how they adapt to changes in each other's function.
+
+The data were obtained from all 2014-2015 regular season games (n = 128,069). The variables analyzed included the final margin, the shot distance, the distance of the closest defender, the success of the shot, the position of taking the shot, the location of the shooting player (home or away) among other variables. The objectives was achieved by analyzing the data using R with methods of performing descriptive analysis, hypothesis testing and correlation and regression Model.
+
+# Descriptive Statistics and Frequencies {#sec:descriptive}
+The purpose of performing descriptive statistics is to provide a summary of the sample data using tables, graphs and distinctive numbers (Foster, Liberman & Stine, 2013). The NBA data set recorded 281 players' performance in 904 different games. We can see both numeric variables and categorical variables were contained from the summary function. There are 23 variables in the data set listed hereafter:
+```{r echo=FALSE,collapse=TRUE}
+nbadata <- read.csv("C:/Users/c2019192/OneDrive - Cardiff University/Desktop/nbadata.csv")
+print(names(nbadata))
+```
+
+```{r results='hide', echo=FALSE}
+length(unique(nbadata$PLAYER_NAME))
+length(unique(nbadata$GAME_ID))
+```
+We can give an overview on the correlations between quantitative variables assessing and determining the player's performance. Figure \@ref(fig:correlation-plot) indicates that there are strong positive relationships between `DRIBBLES` and `TOUCH_TIME`, `SHOT_DIST` and `PTS_TYPE`, and these two groups seem reasonable because they are consistent with our common sense. Specially, `CLOSE_DEF_DIST` describes a weak positive correlation against `PTS_TYPE` which means when the distance of the nearest defender was closer, the player tended to shoot near the basket. 
+```{r correlation-plot, echo = FALSE, fig.height = 4, fig.width = 6, fig.align = "center", fig.cap = "Graphical representation of the correlations between the factors assessing and determining the performance of the player.", warning=FALSE, error=FALSE, message=FALSE}
+library(corrplot)
+Corr <- cor(nbadata[c(9,10,23,14,15,16,17,21)])
+corrplot(Corr, method="circle",tl.cex=0.7,mar=c(0,0,0,5))
+```
+During the 904 games, we compute the mean distances of shooting players from the basket and the mean distances of the nearest defender under each game. The Figure\@ref(fig:histogram2) shows the distributions of the two variables and they appear very close to be Gaussian distributions. 
+```{r histogram2, tidy=FALSE, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, fig.cap="Distributions of the varibales shot distances and defendence distances", fig.align="center",fig.height = 6, fig.width=8}
+Final_margin <- data.frame(summarise(group_by(nbadata, GAME_ID),SHOT_DIST = mean(SHOT_DIST), CLOSE_DEF_DIST = mean(CLOSE_DEF_DIST)))
+options(repr.plot.width=8, repr.plot.height=7)
+par(mfrow=c(2,2))
+hist(Final_margin$SHOT_DIST, freq=FALSE, col='cyan')
+hist(Final_margin$CLOSE_DEF_DIST, freq=FALSE, col='green')
+qqnorm(Final_margin$SHOT_DIST)
+qqnorm(Final_margin$CLOSE_DEF_DIST)
+```
+People are usually curious about the players with best performances. We can observe the top 10 player names and their corresponding total scores, total shots number and shooting percentage shown in Table\@ref(tab:Top10-scores-player). Among the 281 players, the top 3 points score obtained by the players during 2014/2015 season are 1130, 1103, 1075, which was marked by Stephen Curry, James Harden, Klay Thompson. Nikola Vucevic had the highest shooting percentage(53.21%) among the ten players.
+\newpage
+```{r Top10-scores-player, tidy=FALSE, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE}
+Tot_scores <- data.frame(summarise(group_by(nbadata,PLAYER_NAME), TOTAL_SCORES = sum(PTS), TOTAL_SHOTS_MADE = sum(FGM), SHOTS_PERCENTAGE = mean(FGM)))
+tot_scores1<-arrange(Tot_scores,desc(TOTAL_SCORES))
+knitr::kable(
+  head(tot_scores1, 10), caption = 'Top10 scores players from the NBA data set',
+  booktabs = TRUE, linesep = "", align = "c")
+```
+# Hypothesis testing{#sec:Hypothesis}
+In this section, We try to make some hypothesis and verify them by various tests.
+
+## Difference on final margin categorized by the location{#sec:diff_margin_location}
+
+To establish if the home team have advantage over the away team, an independent t test was performed on the final margin categorized by the location of the shooting player. 
+
+The boxplot presented in Figure\@ref(fig:boxplot) illustrates the distribution of `FINAL_MARGIN` as function of `LOCATION`. It's relatively obvious that the average margin the player obtained on the home('H') was kinda of higher from away team('A'), which indicates the location may effect the final margin of a team.
+```{r boxplot, echo = FALSE, fig.height = 4, fig.width = 6, fig.align = "center", fig.cap = "Boxplot of the distribution of final margin as function of location."}
+
+boxplot(FINAL_MARGIN~LOCATION,data=nbadata, col='orange', xlob='')
+```
+
+The hypothesis was tested by determining if the average final margin for the home team significantly differ with that of the away team. On average, the final margin of the home team was 2.264085 during the season and -1.840196 for the away team. Clearly, the away team is likely to lose to the home team. 
+```{r echo=FALSE, collapse=TRUE}
+# print the mean final margin of home team and away team
+a <- mean(nbadata$FINAL_MARGIN[nbadata$LOCATION=='H'])
+b <- mean(nbadata$FINAL_MARGIN[nbadata$LOCATION=='A'])
+noquote(sprintf( 'Mean of the home team = %.2f.',a))
+noquote(sprintf('Mean of the away team = %.2f.',b))
+noquote(sprintf('Mean difference = %.2f.',a-b))
+
+# t-test(two-tailed)
+location_H <- nbadata$FINAL_MARGIN[nbadata$LOCATION=='H']
+tt <- t.test(location_H, mu=b)
+tt
+```
+
+The test p value was found to be smaller than 2.2e-16 which is significant at p<0.05. Therefore, the decision is to reject the null hypothesis and conclude that the home team has got advantage over the away team and therefore the home team scored higher than the away team on average.
+
+## Differences of the distance closest defender on the performance{#sec:diff_def_perf}
+
+Similarly, to verify the effect of the distance closest defender on the performance, the average distance was compared for a successful and unsuccessful shot in a two sample t-test. The histograms in Figure \@ref(fig:histogram1) describes an overview of the distribution of the average distance of the nearest defender against the the number of shot result in 'made' and 'missed'. The variables `Defmaded` and `Defmissed` correspond to the number of shot results successful and unsuccessful.
+```{r histogram1, echo = FALSE, collapse=TRUE, fig.height = 4, fig.width = 8, fig.align = "center", fig.cap="Histograms of {\\tt Defmaded} and {\\tt Defmissed}."}
+par(mfrow=c(1,2))
+# define the variables we need
+Defmaded <- nbadata$CLOSE_DEF_DIST[nbadata$SHOT_RESULT == 'made']
+c <- length(Defmaded)
+
+Defmissed <- nbadata$CLOSE_DEF_DIST[nbadata$SHOT_RESULT == 'missed']
+d <- length(Defmissed)
+noquote(sprintf('length of Defmaded = %d, length of Defmissed = %d.', c, d))
+# plot histagram
+hist(Defmaded, freq=FALSE, col='yellow')
+hist(Defmissed, freq=FALSE, col='pink')
+```
+
+We need to test the variance equality of these two samples before the t test. The sample sizes are very large thus we can suppose the distribution of the two samples satisfy the normal distribution approximately.
+
+```{r}
+var.test(Defmaded, Defmissed, alternative = "two.sided", conf.level=0.95)
+```
+The F statistic(1.22) lies in the 95% confidence interval [1.203, 1.24], so we retain $H_0$ and suggest that the two samples could have the equal variances. And now we can perform the two sample t test with more credibility.
+
+```{r}
+t.test(Defmaded, Defmissed, alternative = "two.sided", conf.level=0.95)
+```
+
+The p value of 0.7006 is greater than the significance level of 5% and hence we fail to reject the null hypothesis and conclude that there is no statistical evidence suggesting that the distance of the closest defender could determine if the shot will be successful or not.
+
+# Association test and ANOVA{#sec:AA}
+## Association test between the position of taking the shot and the shot outcome{#sec:Association}
+
+A chi square test was performed to establish if there exists any association between the shot results and the position of the shooting player (whether take a shot inside or outside the arc).
+```{r include=FALSE}
+# define data frame we intend to test
+df <- data.frame(nbadata)
+df.ass1 <- subset(df, subset = PTS_TYPE == 2 & SHOT_RESULT == 'made', select = c(PTS_TYPE, SHOT_RESULT))
+df.ass2 <- subset(df, subset = PTS_TYPE == 2 & SHOT_RESULT == 'missed', select = c(PTS_TYPE, SHOT_RESULT))
+df.ass3 <- subset(df, subset = PTS_TYPE == 3 & SHOT_RESULT == 'made', select = c(PTS_TYPE, SHOT_RESULT))
+df.ass4 <- subset(df, subset = PTS_TYPE == 3 & SHOT_RESULT == 'missed', select = c(PTS_TYPE, SHOT_RESULT))
+```
+
+```{r echo=FALSE, collapse=TRUE}
+# Chi-squared test
+Association_test <- as.table(rbind(c(nrow(df.ass1), nrow(df.ass2)), c(nrow(df.ass3), nrow(df.ass4))))
+dimnames(Association_test) <- list(PTS_TYPE = c("2(inside the arc)", "3(outside the arc)"),
+                    outcome = c("shot made","shot missed"))
+
+(Xsq <- chisq.test(Association_test))  # Prints test summary
+```
+
+The data suggest that there is a relatively strong association between shot position and shot outcome.
+We then can confirm it with the proportions test:
+```{r echo=FALSE, collapse=TRUE}
+noquote(sprintf('Group A: shots from inside the arc = %d', nrow(df.ass1)+nrow(df.ass2)))
+noquote(sprintf('Group B: shots from outside the arc = %d', nrow(df.ass3)+nrow(df.ass4)))
+noquote(sprintf('The number of shots made in Group A = %d', nrow(df.ass1)))
+noquote(sprintf('The number of shots made in Group B = %d', nrow(df.ass3)))
+
+prop.test(c(45990,11914),c(94173,33896),conf.level=0.95, alternative = 'greater')
+```
+From the table of proportions, it can be seen that the probability of making a successful shot is higher when the shot is taken inside the arc. The chi square probability imply that we reject the null hypothesis and state that if the shooting player make the shot while inside the arc, the probability of converting the shot is higher than when he shoots when outside the arc. This confirms to the findings that the player position is important in win score (Casals & Martinez, 2013).
+
+## One-way ANOVA among the mean shots percentage against various teams during different periods{#sec:ANOVA}
+
+We can put one-way ANOVA test to check if there are significant differences between the mean shooting percentage of each period. The model demands that observations from different groups have the same variance. The homegeneity of variance condition can be confirmed by Levene's Test.
+```{r echo = FALSE, collapse=TRUE, warning=FALSE, error=FALSE, message=FALSE}
+# Convert data to the format required by the `anova` function
+df_anova <- data.frame(summarise(group_by(nbadata, PERIOD, HOME_TEAM), Shooting_percentage = mean(FGM)))
+# define the values in each group
+P1<- df_anova$Shooting_percentage[df_anova$PERIOD == 1]
+P2<- df_anova$Shooting_percentage[df_anova$PERIOD == 2]
+P3<- df_anova$Shooting_percentage[df_anova$PERIOD == 3]
+P4<- df_anova$Shooting_percentage[df_anova$PERIOD == 4]
+P5<- df_anova$Shooting_percentage[df_anova$PERIOD == 5]
+P6<- df_anova$Shooting_percentage[df_anova$PERIOD == 6]
+P7<- df_anova$Shooting_percentage[df_anova$PERIOD == 7]
+
+# one-way anova
+values <- c(P1, P2, P3, P4, P5, P6, P7)
+labels <- c(rep('P1', length(P1)), rep('P2', length(P2)), rep('P3', length(P3)), rep('P4', length(P4)), rep('P5', length(P5)), rep('P6', length(P6)),rep('P7', length(P7)))
+df_anova1 <- data.frame(values, labels)
+
+# Levene's Test
+print(leveneTest(values ~ labels, data = df_anova1))
+```
+The point plot in Figure \@ref(fig:ggline) leaves a more straightforward impression on different shots percentage against its corresponding periods in the data set.
+
+```{r echo=FALSE, collapse=TRUE}
+# Run the ANOVA test
+res.aov <- aov(values ~ labels, data=df_anova1)
+summary(res.aov)
+```
+At the significance level $\alpha=0.01$ the F-ratio belongs to the critical region (since the p-value is smaller than $\alpha$ We therefore reject $H_0$ for $H_1$, concluding that the data indicates a statistically significant difference between the shooting percentage that different teams perform in various periods. 
+
+# Correlation and Regression Model{#sec:Regression}
+In this section, we try to fit some regression models and evaluate the performance of these models.
+
+In section 3, We've established the factors influencing the team's performance, in this particular case, final margin was used as a measure of team performance. On the other hand, the distance of the shooting player from the basket served as the independent variable. Correlation analysis was performed on these two variables and hence built a regression model. Figure\@ref(fig:scatter-plot) visually examine the direction of the relationship. The plot shows no particular pattern and therefore suggesting that there might be no significant relationship between final margin and the shot distance.
+
+```{r echo=FALSE, collapse=TRUE}
+# construct the model
+cor.test(df$SHOT_DIST,df$FINAL_MARGIN)
+mod <- lm(FINAL_MARGIN ~ SHOT_DIST, df )
+summary(mod)
+```
+The correlation coefficient of 0.008876 imply a positive relationship between the shot distance and the final margin. However, this relationship is very weak as the coefficient is close to zero. The regression analysis tests the significance of the effect by use of p value at 5% significance level. The p value associated with the shot distance was found to be 0.00149 which is significant at 1% level. The decision therefore is to reject the null hypothesis and conclude that the distance of the shooting player from the basket significantly predicts the margin of victory for the player's team. However, the percentage of variation explained by the model is low (0.007878%).The regression model best describes the relationship between the final margin and the shot distance as shown by the value of F statistic. 
+
+# Conclusion{#sec:Con}
+In summary, this report provided analysis of an NBA 2014/2015 season using shooting player related statistics. It was found that the home team has got advantage over the away team. The advantage may be attributed to the home ground where the fans are the majority. Therefore, the shooting players of the home team performed consistently better than away team shooting players. In addition, the shorter the distance from the basket increases the chance of converting a shot. This imply that, a shot taken inside the arc have higher chances of being successful than the one taken outside the arc. Therefore, the shot distance significantly predicts the victory margin.
+
+Future research should take into consideration the use of fixed and random effects models on different players’ characteristics.
+\newpage
+**Appendix**
+```{r ggline, echo = FALSE, collapse=TRUE, fig.height = 3.5, fig.width = 8, fig.align = "center", fig.cap="Point plot of shots percentage in different team during various periods ."}
+ggboxplot(df_anova1, x = "labels", y = "values", 
+       add = c("mean_se", "jitter", "violin"), color = "steelblue",
+       order = c('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'),
+       ylab = "Shooting Percentage", xlab = "Period")
+```
+
+```{r scatter-plot, echo=FALSE, fig.cap = "Scatter plots of the mean values of the four variables against final margin", fig.height = 3.7, fig.width = 8, fig.align = "center", warning=FALSE, error=FALSE, message=FALSE}
+# scatter plots
+plot(df$SHOT_DIST, df$FINAL_MARGIN, type='p', pch=21, bg='grey', cex=1.5)
+
+```
+\newpage
+# References{#sec:Ref}
+
+Casals, M., & Martinez, A. J. (2013). Modelling player performance in basketball through mixed models. International Journal of Performance Analysis in Sport, 13(1), 64-82.
+
+Dobson, S., Goddard, J. A., & Dobson, S. (2001). The economics of football (pp. 106-130). Cambridge: Cambridge University Press.
+
+Foster, D. P., Liberman, M., & Stine, R. A. (2013). Featurizing text: Converting text into predictors for regression analysis. The Wharton School of the University of Pennsylvania, Philadelphia, PA.
+
+Sampaio, J., Drinkwater, E. J., & Leite, N. M. (2010). Effects of season period, team quality, and playing time on basketball players' game-related statistics. European Journal of Sport Science, 10(2), 141-149.
